@@ -1,0 +1,114 @@
+﻿@model Assignment1.Models.DBEntities
+
+@{
+	ViewBag.Title = "Index";
+}
+<h3></h3>
+
+<table border="1">
+	<tr>
+		<td>
+			<table id="Results" class="table">
+				<tbody></tbody>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td colspan="4">
+			<input id="ItemName" type="text" placeholder="Name" />
+			<input id="ItemValue" type="text" placeholder="Value" />
+			<select id="ddlCategoryList">
+				<option value="0" selected="selected"></option>
+			</select>
+			<button id="btnAdd" onclick="SubmitData()">Add</button>
+		</td>
+	</tr>
+</table>
+
+<script src="~/Scripts/jquery-3.3.1.min.js" type="text/javascript"></script>
+@*Added toaster for messages*@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+<script>
+	$(document).ready(function () {
+		getDataValues();
+		getCategoryValues();
+	});
+
+	//Empty the input fields after saving new record
+	function ClearFields() {
+		//alert('call_empty');
+		$('#ItemName').val('');
+		$('#ItemValue').val('');
+		$("#ddlCategoryList").val($("#ddlCategoryList option:first").val());
+	}
+
+	//Save the input data
+	function SubmitData() {
+		var dataVal = {
+			ItemName: $('#ItemName').val(),
+			ItemValue: $('#ItemValue').val(),
+			CategoryID: $("#ddlCategoryList option:selected").val(),
+		};
+		$.ajax({
+			type: "POST",
+			url: "/api/CRUD/AddItem",
+			data: dataVal,
+		}).done(function (msg) {
+			window.toastr.success("Record(s) Saved Succesfully");
+			getDataValues();
+		});
+	}
+
+	// Delete the selected Item after confirmation
+	function DeleteItem(ItemId) {
+		if(confirm("Are you sure to delete item"))
+		{
+			var deleteUrl = "/api/CRUD/Deletetbl_ContentLimitInsurance?id=" + ItemId;
+			$.ajax({
+				type: "DELETE",
+				url: deleteUrl,
+				data: {
+					"ItemID": ItemId
+				}
+			}).done(function (msg) {
+				window.toastr.success("Item succesfully deleted");
+				getDataValues();
+			});
+		}
+	}
+
+	// Populate the table
+	// This is the main function which refreshes the data in Results table
+	// thereby full page refresh is not required in the application
+	// The Results table acts as a component
+	function getDataValues() {
+		$.ajax({
+			type: "GET",
+			url: "/api/CRUD/GetData",
+		}).done(function (data) {
+			$('#Results tbody').empty();
+			$.each(data, function (index, value) {
+				$("<tr>").addClass(value.ItemID == 0 ? "active" : "").append(
+					$("<td>").text(value.ItemName),
+					$("<td style='text-align:right'>").text(parseFloat(value.ItemValue).toLocaleString('en-US', { style: 'currency', currency: 'USD' })),
+					$("<td>").html(value.ItemID == 0 ? "" : "<img  src='../../Images/delImg.svg' height='20' width='20' onclick='DeleteItem(" + value.ItemID + ")' />")
+				).appendTo("#Results tbody");
+			})
+			ClearFields();
+		})
+	}
+
+	// Bind the Category drop down
+	function getCategoryValues() {
+		$.ajax({
+			type: "GET",
+			url: "/api/RefData/GetData",
+		}).done(function (data) {
+			$.each(data, function (index, value) {
+				$("#ddlCategoryList").append($("<option></option>").val(value.CategoryID).html(value.CategoryName));
+			});
+		});
+	}
+
+</script>
